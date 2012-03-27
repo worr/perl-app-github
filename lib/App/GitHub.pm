@@ -12,7 +12,7 @@ use Term::ReadLine;
 use JSON::XS;
 use IPC::Cmd qw/can_run/;
 
-our $VERSION = '0.10';
+our $VERSION = '0.12';
 
 has 'term' => (
     is => 'rw', required => 1,
@@ -148,9 +148,9 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
 
 =head1 DESCRIPTION
 
-a command line tool wrap L<Net::GitHub>
+A command-line wrapper for L<Net::GitHub>
 
-Repository: L<http://github.com/fayland/perl-app-github/tree/master>
+Repository: L<http://github.com/worr/perl-app-github/tree/master>
  
 =head1 SEE ALSO
  

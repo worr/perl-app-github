@@ -1,5 +1,11 @@
 Revision history for Perl extension App-GitHub
 
+0.12	2012.03.27
+		doesn't drop into a pager for short output
+		runs loadcfg at startup
+		doesn't require choosing a repository for certain actions
+		changed repo in synopsis
+
 0.11    2010.11.06
         use LoadTests instead of CompileTests (because CompileTests returns 'skipped: no tests to run')
 
