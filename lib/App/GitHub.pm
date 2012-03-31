@@ -185,8 +185,8 @@ my $dispatch = {
     'i.view'    => sub { shift->run_github_with_repo( 'issue', 'issue', shift ); },
     'i.open'    => sub { shift->issue_open_or_edit( 'open' ) },
     'i.edit'    => sub { shift->issue_open_or_edit( 'edit', @_ ) },
-    'i.close'   => sub { shift->run_github( 'issue', 'close', shift ); },
-    'i.reopen'  => sub { shift->run_github( 'issue', 'reopen', shift ); },
+    'i.close'   => sub { shift->run_github_with_repo( 'issue', 'update_issue', shift, { state => 'closed' } ); },
+    'i.reopen'  => sub { shift->run_github_with_repo( 'issue', 'update_issue', shift, { state => 'open' } ); },
     'i.label'   => \&issue_label,
     'i.comment' => \&issue_comment,
     
