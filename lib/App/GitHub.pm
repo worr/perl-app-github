@@ -363,6 +363,7 @@ sub set_repo {
     
     $self->{github} = Net::GitHub->new(
         owner => $owner, repo => $name,
+        version => 3,
         @logins,
     );
     $self->{prompt} = "$owner/$name> ";
@@ -403,14 +404,16 @@ sub _do_login {
 
     if ( $self->{_data}->{repo} ) {
         $self->{github} = Net::GitHub->new(
+            version => 3,
             owner => $self->{_data}->{owner}, repo  => $self->{_data}->{repo},
-            login => $self->{_data}->{login}, token => $self->{_data}->{token}
+            login => $self->{_data}->{login}, pass => $self->{_data}->{token}
         );
     } else {
         # Create a Net::GitHub object with the owner set to the logged in user
         # Super convenient if you don't want to set a user first
         $self->{github} = Net::GitHub->new(
-            login => $self->{_data}->{login}, token => $self->{_data}->{token},
+            version => 3,
+            login => $self->{_data}->{login}, pass => $self->{_data}->{token},
             owner => $self->{_data}->{login}
         );
     }
@@ -478,7 +481,7 @@ sub repo_create {
     my ( $self ) = @_;
     
     my %data;
-    foreach my $col ( 'name', 'desc', 'homepage' ) {
+    foreach my $col ( 'name', 'description', 'homepage' ) {
         my $data = $self->read( ucfirst($col) . ': ' );
         $data{$col} = $data;
     }
@@ -487,7 +490,7 @@ sub repo_create {
         return;
     }
     
-    $self->run_github( 'repos', 'create', $data{name}, $data{desc}, $data{homepage}, 1 );
+    $self->run_github( 'repos', 'create', \%data );
 }
 
 sub repo_del {
