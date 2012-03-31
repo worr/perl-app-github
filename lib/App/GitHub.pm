@@ -30,7 +30,7 @@ has 'out_fh' => (
     }
 );
 
-has 'repo_regex' => (
+has 'repo_regexp' => (
     is => 'ro', required => 1,
     isa => 'RegexpRef',
     default => sub { qr/^([\-\w]+)[\/\\\s]([\-\w]+)$/ }
@@ -181,7 +181,7 @@ my $dispatch = {
     'r.search' => sub { shift->run_github( 'repos', 'search', shift ); },
     'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
-    'r.fork'     => sub { shift->run_github( 'repos', 'create_fork' ); },
+    'r.fork'     => \&repo_fork,
     'r.create'   => \&repo_create,
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
     'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
@@ -351,11 +351,11 @@ sub set_repo {
     my ( $self, $repo ) = @_;
     
     # validate
-    unless ( $repo =~ $self->repo_regex ) {
+    unless ( $repo =~ $self->repo_regexp ) {
         $self->print("Wrong repo args ($repo), eg 'fayland perl-app-github'");
         return;
     }
-    my ( $owner, $name ) = ( $repo =~ $self->repo_regex );
+    my ( $owner, $name ) = ( $repo =~ $self->repo_regexp );
     $self->{_data}->{owner} = $owner;
     $self->{_data}->{repo} = $name;
     
@@ -458,13 +458,13 @@ sub run_github_with_repo {
         return;
     }
 
-    $self->run_github( shift, shift, $self->{_data}->{login}, $self->{_data}->{repo}, @_ );
+    $self->run_github( shift, shift, $self->{_data}->{owner}, $self->{_data}->{repo}, @_ );
 }
 
 ################## Repos
 sub repo_show {
     my ( $self, $args ) = @_;
-    if ( $args and $args =~ $self->repo_regex ) {
+    if ( $args and $args =~ $self->repo_regexp ) {
         $self->run_github( 'repos', 'get', $1, $2 );
     } else {
         $self->run_github_with_repo( 'repos', 'get' );
@@ -511,8 +511,14 @@ sub repo_update {
     }
 }
 
-sub repo_form {
+sub repo_fork {
     my ( $self, $args ) = @_;
+
+    if ( $args and $args =~ $self->repo_regexp ) {
+        $self->run_github( 'repos', 'create_fork', $1, $2 );
+    } else {
+        $self->run_github_with_repo( 'repos', 'create_fork' );
+    }
 }
 
 # Issues
