@@ -129,8 +129,7 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
     Objects
      o.tree    :tree_sha1        get the contents of a tree by tree sha
      o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
-     o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
-     o.raw     :sha1             get the data of a blob (tree, file or commits)
+     o.blob    :sha1             get the data of a blob (tree, file or commits)
     
     Others
      r.show    :user :repo       more in-depth information for a repository
@@ -201,12 +200,7 @@ my $dispatch = {
     # Object
     'o.tree'    => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
     'o.trees'   => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
-    'o.blob'    => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        $self->run_github_with_repo( 'git_data', 'blob', @args );
-    },
-    'o.raw'     => sub { shift->run_github_with_repo( 'git_data', 'raw',  shift ); },
+    'o.blob'     => sub { shift->run_github_with_repo( 'git_data', 'blob',  shift ); },
 };
 
 sub run {
@@ -287,8 +281,7 @@ Users
 Objects
  o.tree    :tree_sha1        get the contents of a tree by tree sha
  o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
- o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
- o.raw     :sha1             get the data of a blob (tree, file or commits)
+ o.blob    :sha1             get the data of a blob (tree, file or commits)
 
 Others
  r.show    :user :repo       more in-depth information for a repository
@@ -383,7 +376,7 @@ sub run_github {
     my @args = splice( @_, 3, scalar @_ - 3 );
     eval {
         my $result = $self->github->$c1->$c2(@args);
-        # o.raw return plain text
+        # o.blob return plain text
         if ( ref $result ) {
             $result = JSON::XS->new->utf8->pretty->encode( $result );
         }
