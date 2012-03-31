@@ -96,7 +96,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
     Repos
      r.show                      more in-depth information for the :repo
      r.list                      list out all the repositories for the :user
-     r.search WORD               Search Repositories
      r.watch                     watch repositories (auth required)
      r.unwatch                   unwatch repositories (auth required)
      r.fork                      fork a repository (auth required)
@@ -110,7 +109,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
     Issues
      i.list    open|closed       see a list of issues for a project
      i.view    :number           get data on an individual issue by number
-     i.search  open|closed WORD  Search Issues
      i.open                      open a new issue (auth required)
      i.close   :number           close an issue (auth required)
      i.reopen  :number           reopen an issue (auth required)
@@ -120,7 +118,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
                                  add/remove a label (auth required)
     
     Users
-     u.search  WORD              search user
      u.show                      get extended information on user
      u.update                    update your users info (auth required)
      u.followers
@@ -178,7 +175,6 @@ my $dispatch = {
     # Repo
     'r.show'    => sub { shift->run_basic_repo_args( 'repos', 'get', shift ); },
     'r.list'    => \&repo_list,
-    'r.search' => sub { shift->run_github( 'repos', 'search', shift ); },
     'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
     'r.fork'     => sub { shift->run_basic_repo_args( 'repos', 'create_fork', shift ); },
@@ -197,11 +193,6 @@ my $dispatch = {
         $self->run_github( 'issue', 'list', $type );
     },
     'i.view'    => sub { shift->run_github( 'issue', 'view', shift ); },
-    'i.search'  => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        $self->run_github( 'issue', 'search', @args );
-    },
     'i.open'    => sub { shift->issue_open_or_edit( 'open' ) },
     'i.edit'    => sub { shift->issue_open_or_edit( 'edit', @_ ) },
     'i.close'   => sub { shift->run_github( 'issue', 'close', shift ); },
@@ -210,7 +201,6 @@ my $dispatch = {
     'i.comment' => \&issue_comment,
     
     # User
-    'u.search' => sub { shift->run_github( 'user', 'search', shift ); },
     'u.show'   => sub { shift->run_github( 'user', 'show', shift ); },
     'u.update' => \&user_update,
     'u.followers' => sub { shift->run_github( 'user', 'followers' ); },
@@ -290,7 +280,6 @@ sub help {
 Repos
  r.show                      more in-depth information for the :repo
  r.list                      list out all the repositories for the :user
- r.search WORD               Search Repositories
  r.watch                     watch repositories (auth required)
  r.unwatch                   unwatch repositories (auth required)
  r.fork                      fork a repository (auth required)
@@ -304,7 +293,6 @@ Repos
 Issues
  i.list    open|closed       see a list of issues for a project
  i.view    :number           get data on an individual issue by number
- i.search  open|closed WORD  Search Issues
  i.open                      open a new issue (auth required)
  i.close   :number           close an issue (auth required)
  i.reopen  :number           reopen an issue (auth required)
@@ -314,7 +302,6 @@ Issues
                              add/remove a label (auth required)
 
 Users
- u.search  WORD              search user
  u.show                      get extended information on user
  u.update                    update your users info (auth required)
  u.followers
