@@ -30,6 +30,12 @@ has 'out_fh' => (
     }
 );
 
+has 'repo_regex' => (
+    is => 'ro', required => 1,
+    isa => 'RegexpRef',
+    default => sub { qr/^([\-\w]+)[\/\\\s]([\-\w]+)$/ }
+);
+
 sub print {
     my ($self, $message) = @_;
 
@@ -175,7 +181,7 @@ my $dispatch = {
     'r.search' => sub { shift->run_github( 'repos', 'search', shift ); },
     'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
-    'r.fork'     => sub { shift->run_github( 'repos', 'fork' ); },
+    'r.fork'     => sub { shift->run_github( 'repos', 'create_fork' ); },
     'r.create'   => \&repo_create,
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
     'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
@@ -345,11 +351,11 @@ sub set_repo {
     my ( $self, $repo ) = @_;
     
     # validate
-    unless ( $repo =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
+    unless ( $repo =~ $self->repo_regex ) {
         $self->print("Wrong repo args ($repo), eg 'fayland perl-app-github'");
         return;
     }
-    my ( $owner, $name ) = ( $repo =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ );
+    my ( $owner, $name ) = ( $repo =~ $self->repo_regex );
     $self->{_data}->{owner} = $owner;
     $self->{_data}->{repo} = $name;
     
@@ -458,7 +464,7 @@ sub run_github_with_repo {
 ################## Repos
 sub repo_show {
     my ( $self, $args ) = @_;
-    if ( $args and $args =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
+    if ( $args and $args =~ $self->repo_regex ) {
         $self->run_github( 'repos', 'get', $1, $2 );
     } else {
         $self->run_github_with_repo( 'repos', 'get' );
@@ -493,7 +499,7 @@ sub repo_create {
 sub repo_update {
     my ( $self, $param, $value, $args ) = @_;
 
-    if ( $args and $args =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
+    if ( $args and $args =~ $self->repo_regexp ) {
         $self->run_github( 'repos', 'update', $1, $2, { $param => $value, name => $2 } );
     } else {
         unless ($self->{_data}->{repo}) {
@@ -503,6 +509,10 @@ sub repo_update {
 
         $self->run_github_with_repo( 'repos', 'update', { $param => $value, name => $self->{_data}->{repo} } );
     }
+}
+
+sub repo_form {
+    my ( $self, $args ) = @_;
 }
 
 # Issues
