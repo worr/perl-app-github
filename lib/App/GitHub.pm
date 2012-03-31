@@ -102,9 +102,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      r.create                    create a new repository (auth required)
      r.set_private               set a public repo private (auth required)
      r.set_public                set a private repo public (auth required)
-     r.network                   see all the forks of the repo
-     r.tags                      tags on the repo
-     r.branches                  list of remote branches
     
     Issues
      i.list    open|closed       see a list of issues for a project
@@ -138,10 +135,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      o.tree    :tree_sha1        get the contents of a tree by tree sha
      o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
      o.raw     :sha1             get the data of a blob (tree, file or commits)
-    
-    Network
-     n.meta                      network meta
-     n.data_chunk :net_hash      network data
     
     Others
      r.show    :user :repo       more in-depth information for a repository
@@ -182,9 +175,6 @@ my $dispatch = {
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
     'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
     # XXX? TODO, deploy_keys collaborators
-    'r.network'     => sub { shift->run_github( 'repos', 'network' ); },
-    'r.tags'        => sub { shift->run_github( 'repos', 'tags' ); },
-    'r.branches'    => sub { shift->run_github( 'repos', 'branches' ); },
     
     # Issues
     'i.list'    => sub {
@@ -229,10 +219,6 @@ my $dispatch = {
         $self->run_github( 'object', 'blob', @args );
     },
     'o.raw'     => sub { shift->run_github( 'object', 'raw',  shift ); },
-    
-    # Network
-    'n.meta'       => sub { shift->run_github( 'network', 'network_meta' ); },
-    'n.data_chunk' => sub { shift->run_github( 'network', 'network_data_chunk', shift ); },
 };
 
 sub run {
@@ -286,9 +272,6 @@ Repos
  r.create                    create a new repository (auth required)
  r.set_private               set a public repo private (auth required)
  r.set_public                set a private repo public (auth required)
- r.network                   see all the forks of the repo
- r.tags                      tags on the repo
- r.branches                  list of remote branches
 
 Issues
  i.list    open|closed       see a list of issues for a project
@@ -322,10 +305,6 @@ Objects
  o.tree    :tree_sha1        get the contents of a tree by tree sha
  o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
  o.raw     :sha1             get the data of a blob (tree, file or commits)
-
-Network
- n.meta                      network meta
- n.data_chunk :net_hash      network data
 
 Others
  r.show    :user :repo       more in-depth information for a repository
