@@ -88,8 +88,8 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
 
      command   argument          description
      repo      :user :repo       set owner/repo, eg: 'fayland perl-app-github'
-     login     :login :token     authenticated as :login
-     loadcfg                     authed by git config --global github.user|token
+     login     :login :pass      authenticated as :login
+     loadcfg                     authed by git config --global github.user|pass
      ?,h                         help
      q,exit,quit                 exit
     
@@ -240,8 +240,8 @@ sub help {
     $self->print(<<HELP);
  command   argument          description
  repo      :user :repo       set owner/repo, eg: 'fayland perl-app-github'
- login     :login :token     authenticated as :login
- loadcfg                     authed by git config --global github.user|token
+ login     :login :pass      authenticated as :login
+ loadcfg                     authed by git config --global github.user|pass
  ?,h                         help
  q,exit,quit                 exit
 
@@ -303,13 +303,13 @@ sub set_repo {
     $self->{_data}->{repo} = $name;
     
     # when call 'login' before 'repo'
-    my @logins = ( $self->{_data}->{login} and $self->{_data}->{token} ) ? (
-        login => $self->{_data}->{login}, token => $self->{_data}->{token}
+    my @logins = ( $self->{_data}->{login} and $self->{_data}->{pass} ) ? (
+        login => $self->{_data}->{login}, pass => $self->{_data}->{pass}
     ) : ();
     
     $self->{github} = Net::GitHub->new(
         owner => $owner, repo => $name,
-        version => 3, pass => $self->{_data}->{token},
+        version => 3, pass => $self->{_data}->{pass},
         @logins,
     );
     $self->{prompt} = "$owner/$name> ";
@@ -318,48 +318,48 @@ sub set_repo {
 sub set_login {
     my ( $self, $login ) = @_;
     
-    ( $login, my $token ) = split(/\s+/, $login, 2);
-    unless ( $login and $token ) {
-        $self->print("Wrong login args ($login $token), eg fayland 54b5197d7f92f52abc5c7149b313cf51");
+    ( $login, my $pass ) = split(/\s+/, $login, 2);
+    unless ( $login and $pass ) {
+        $self->print("Wrong login args ($login $pass), eg fayland password");
         return;
     }
 
-    $self->_do_login( $login, $token );
+    $self->_do_login( $login, $pass );
 }
 
 sub set_loadcfg {
     my ( $self, $ign ) = @_;
     
     my $login = `git config --global github.user`;
-    my $token = `git config --global github.token`;
-    chomp($login); chomp($token);
-    unless ( ($login and $token) or $ign ) {
-        $self->print("run git config --global github.user|token fails");
+    my $pass = `git config --global github.pass`;
+    chomp($login); chomp($pass);
+    unless ( ($login and $pass) or $ign ) {
+        $self->print("run git config --global github.user|pass fails");
         return;
     }
     
-    $self->_do_login( $login, $token ) if $login and $token;
+    $self->_do_login( $login, $pass ) if $login and $pass;
 }
 
 sub _do_login {
-    my ( $self, $login, $token ) = @_;
+    my ( $self, $login, $pass ) = @_;
     
     # save for set_repo
     $self->{_data}->{login} = $login;
-    $self->{_data}->{token} = $token;
+    $self->{_data}->{pass} = $pass;
 
     if ( $self->{_data}->{repo} ) {
         $self->{github} = Net::GitHub->new(
             version => 3,
             owner => $self->{_data}->{owner}, repo  => $self->{_data}->{repo},
-            login => $self->{_data}->{login}, pass => $self->{_data}->{token}
+            login => $self->{_data}->{login}, pass => $self->{_data}->{pass}
         );
     } else {
         # Create a Net::GitHub object with the owner set to the logged in user
         # Super convenient if you don't want to set a user first
         $self->{github} = Net::GitHub->new(
             version => 3,
-            login => $self->{_data}->{login}, pass => $self->{_data}->{token},
+            login => $self->{_data}->{login}, pass => $self->{_data}->{pass},
             owner => $self->{_data}->{login}
         );
     }
@@ -369,7 +369,7 @@ sub run_github {
     my ( $self, $c1, $c2 ) = @_;
     
     unless ( $self->github ) {
-        $self->print(q~not enough information. try calling login :user :token or loadcfg~);
+        $self->print(q~not enough information. try calling login :user :pass or loadcfg~);
         return;
     }
     
@@ -385,8 +385,8 @@ sub run_github {
     
     if ( $@ ) {
         # custom error
-        if ( $@ =~ /login and token are required/ ) {
-            $self->print(qq~authentication required.\ntry 'login :owner :token' or 'loadcfg' first\n~);
+        if ( $@ =~ /login and pass are required/ ) {
+            $self->print(qq~authentication required.\ntry 'login :owner :pass' or 'loadcfg' first\n~);
         } else {
             $self->print($@);
         }
