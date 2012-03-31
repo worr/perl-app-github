@@ -95,7 +95,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      r.unwatch                   unwatch repositories (auth required)
      r.fork                      fork a repository (auth required)
      r.create                    create a new repository (auth required)
-     r.delete                    delete a repository (auth required)
      r.set_private               set a public repo private (auth required)
      r.set_public                set a private repo public (auth required)
      r.network                   see all the forks of the repo
@@ -178,7 +177,6 @@ my $dispatch = {
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
     'r.fork'     => sub { shift->run_github( 'repos', 'fork' ); },
     'r.create'   => \&repo_create,
-    'r.delete'   => \&repo_delete,
     'r.set_private' => sub { shift->run_github( 'repos', 'set_private' ); },
     'r.set_public'  => sub { shift->run_github( 'repos', 'set_public' ); },
     # XXX? TODO, deploy_keys collaborators
@@ -291,7 +289,6 @@ Repos
  r.unwatch                   unwatch repositories (auth required)
  r.fork                      fork a repository (auth required)
  r.create                    create a new repository (auth required)
- r.delete                    delete a repository (auth required)
  r.set_private               set a public repo private (auth required)
  r.set_public                set a private repo public (auth required)
  r.network                   see all the forks of the repo
@@ -491,16 +488,6 @@ sub repo_create {
     }
     
     $self->run_github( 'repos', 'create', \%data );
-}
-
-sub repo_delete {
-    my ( $self ) = @_;
-    
-    my $data = $self->read( 'Are you sure to delete the repo? [YN]? ' );
-    if ( $data eq 'Y' ) {
-        $self->print("Deleting Repos ...");
-        $self->run_github_with_repo( 'repos', 'delete', { confirm => 1 } );
-    }
 }
 
 # Issues
