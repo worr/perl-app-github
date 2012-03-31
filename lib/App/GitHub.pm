@@ -45,6 +45,9 @@ sub print {
     use warnings;
 
     if ($@ or $message_rows < $rows) {
+        chomp $message;
+        $message .= "\n";
+
         $fh = $self->out_fh;
     } else {
         eval { open $fh, '|-', $self->_get_pager or die "unable to open more: $!" }
