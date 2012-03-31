@@ -128,6 +128,7 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
     
     Objects
      o.tree    :tree_sha1        get the contents of a tree by tree sha
+     o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
      o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
      o.raw     :sha1             get the data of a blob (tree, file or commits)
     
@@ -198,13 +199,14 @@ my $dispatch = {
     'u.pub_keys.del' => sub { shift->user_pub_keys( 'del', @_ ); },
     
     # Object
-    'o.tree'    => sub { shift->run_github( 'object', 'tree', shift ); },
+    'o.tree'    => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
+    'o.trees'   => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
     'o.blob'    => sub {
         my ( $self, $arg ) = @_;
         my @args = split(/\s+/, $arg, 2);
-        $self->run_github( 'object', 'blob', @args );
+        $self->run_github_with_repo( 'git_data', 'blob', @args );
     },
-    'o.raw'     => sub { shift->run_github( 'object', 'raw',  shift ); },
+    'o.raw'     => sub { shift->run_github_with_repo( 'git_data', 'raw',  shift ); },
 };
 
 sub run {
@@ -284,6 +286,7 @@ Users
 
 Objects
  o.tree    :tree_sha1        get the contents of a tree by tree sha
+ o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
  o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
  o.raw     :sha1             get the data of a blob (tree, file or commits)
 
