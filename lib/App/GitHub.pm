@@ -493,7 +493,7 @@ sub repo_create {
     $self->run_github( 'repos', 'create', \%data );
 }
 
-sub repo_del {
+sub repo_delete {
     my ( $self ) = @_;
     
     my $data = $self->read( 'Are you sure to delete the repo? [YN]? ' );
