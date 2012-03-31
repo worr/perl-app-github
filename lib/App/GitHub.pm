@@ -462,9 +462,9 @@ sub run_github_with_repo {
 sub repo_show {
     my ( $self, $args ) = @_;
     if ( $args and $args =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
-        $self->run_github( 'repos', 'show', $1, $2 );
+        $self->run_github( 'repos', 'get', $1, $2 );
     } else {
-        $self->run_github_with_repo( 'repos', 'show' );
+        $self->run_github_with_repo( 'repos', 'get' );
     }
 }
 
