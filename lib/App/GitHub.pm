@@ -177,8 +177,8 @@ my $dispatch = {
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
     'r.fork'     => sub { shift->run_github( 'repos', 'fork' ); },
     'r.create'   => \&repo_create,
-    'r.set_private' => sub { shift->run_github( 'repos', 'set_private' ); },
-    'r.set_public'  => sub { shift->run_github( 'repos', 'set_public' ); },
+    'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
+    'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
     # XXX? TODO, deploy_keys collaborators
     'r.network'     => sub { shift->run_github( 'repos', 'network' ); },
     'r.tags'        => sub { shift->run_github( 'repos', 'tags' ); },
@@ -360,7 +360,7 @@ sub set_repo {
     
     $self->{github} = Net::GitHub->new(
         owner => $owner, repo => $name,
-        version => 3,
+        version => 3, pass => $self->{_data}->{token},
         @logins,
     );
     $self->{prompt} = "$owner/$name> ";
@@ -452,7 +452,7 @@ sub run_github_with_repo {
         return;
     }
 
-    $self->run_github( @_ );
+    $self->run_github( shift, shift, $self->{_data}->{login}, $self->{_data}->{repo}, @_ );
 }
 
 ################## Repos
@@ -488,6 +488,21 @@ sub repo_create {
     }
     
     $self->run_github( 'repos', 'create', \%data );
+}
+
+sub repo_update {
+    my ( $self, $param, $value, $args ) = @_;
+
+    if ( $args and $args =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
+        $self->run_github( 'repos', 'update', $1, $2, { $param => $value, name => $2 } );
+    } else {
+        unless ($self->{_data}->{repo}) {
+            $self->print(q~no repo specified. try calling repo :owner :repo~);
+            return;
+        }
+
+        $self->run_github_with_repo( 'repos', 'update', { $param => $value, name => $self->{_data}->{repo} } );
+    }
 }
 
 # Issues
