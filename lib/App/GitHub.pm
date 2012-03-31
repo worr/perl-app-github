@@ -102,6 +102,7 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      r.create                    create a new repository (auth required)
      r.set_private               set a public repo private (auth required)
      r.set_public                set a private repo public (auth required)
+     r.commit    :sha1           show a specific commit
     
     Issues
      i.list    open|closed       see a list of issues for a project
@@ -124,12 +125,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      u.pub_keys                  Public Key Management (auth required)
      u.pub_keys.add
      u.pub_keys.del :number
-    
-    Commits
-     c.branch  :branch           list commits for a branch
-     c.file    :branch :file     get all the commits modified the file
-     c.file    :file             (default branch 'master')
-     c.show    :sha1             show a specific commit
     
     Objects
      o.tree    :tree_sha1        get the contents of a tree by tree sha
@@ -175,6 +170,7 @@ my $dispatch = {
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
     'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
     # XXX? TODO, deploy_keys collaborators
+    'r.commit'    => sub { shift->run_github_with_repo( 'git_data', 'commit', shift ); },
     
     # Issues
     'i.list'    => sub {
@@ -200,16 +196,6 @@ my $dispatch = {
     'u.pub_keys'  => sub { shift->user_pub_keys( 'show' ); },
     'u.pub_keys.add' => sub { shift->user_pub_keys( 'add', @_ ); },
     'u.pub_keys.del' => sub { shift->user_pub_keys( 'del', @_ ); },
-    
-    # Commits
-    'c.branch'  => sub { shift->run_github( 'commit', 'branch', shift ); },
-    'c.file'    => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        @args = ('master', $args[0]) if scalar @args == 1;
-        $self->run_github( 'commit', 'file', @args );
-    },
-    'c.show'    => sub { shift->run_github( 'commit', 'show', shift ); },
     
     # Object
     'o.tree'    => sub { shift->run_github( 'object', 'tree', shift ); },
@@ -272,6 +258,7 @@ Repos
  r.create                    create a new repository (auth required)
  r.set_private               set a public repo private (auth required)
  r.set_public                set a private repo public (auth required)
+ r.commit    :sha1           show a specific commit
 
 Issues
  i.list    open|closed       see a list of issues for a project
@@ -294,12 +281,6 @@ Users
  u.pub_keys                  Public Key Management (auth required)
  u.pub_keys.add
  u.pub_keys.del :number
-
-Commits
- c.branch  :branch           list commits for a branch
- c.file    :branch :file     get all the commits modified the file
- c.file    :file             (default branch 'master')
- c.show    :sha1             show a specific commit
 
 Objects
  o.tree    :tree_sha1        get the contents of a tree by tree sha
