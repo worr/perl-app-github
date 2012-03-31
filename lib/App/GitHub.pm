@@ -176,12 +176,12 @@ my $dispatch = {
     loadcfg => \&set_loadcfg,
     
     # Repo
-    'r.show'    => \&repo_show,
+    'r.show'    => sub { shift->run_basic_repo_args( 'repos', 'get', shift ); },
     'r.list'    => \&repo_list,
     'r.search' => sub { shift->run_github( 'repos', 'search', shift ); },
     'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
     'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
-    'r.fork'     => \&repo_fork,
+    'r.fork'     => sub { shift->run_basic_repo_args( 'repos', 'create_fork', shift ); },
     'r.create'   => \&repo_create,
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
     'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
@@ -462,15 +462,6 @@ sub run_github_with_repo {
 }
 
 ################## Repos
-sub repo_show {
-    my ( $self, $args ) = @_;
-    if ( $args and $args =~ $self->repo_regexp ) {
-        $self->run_github( 'repos', 'get', $1, $2 );
-    } else {
-        $self->run_github_with_repo( 'repos', 'get' );
-    }
-}
-
 sub repo_list {
     my ( $self, $args ) = @_;
     if ( $args and $args =~ /^[\w\-]+$/ ) {
@@ -511,13 +502,13 @@ sub repo_update {
     }
 }
 
-sub repo_fork {
-    my ( $self, $args ) = @_;
+sub run_basic_repo_args {
+    my ( $self, $obj, $meth, $args ) = @_;
 
     if ( $args and $args =~ $self->repo_regexp ) {
-        $self->run_github( 'repos', 'create_fork', $1, $2 );
+        $self->run_github( $obj, $meth, $1, $2 );
     } else {
-        $self->run_github_with_repo( 'repos', 'create_fork' );
+        $self->run_github_with_repo( $obj, $meth );
     }
 }
 
