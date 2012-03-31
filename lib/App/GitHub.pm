@@ -175,8 +175,8 @@ my $dispatch = {
     # Repo
     'r.show'    => sub { shift->run_basic_repo_cmd( 'repos', 'get', shift ); },
     'r.list'    => \&repo_list,
-    'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
-    'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
+    'r.watch'    => sub { shift->run_basic_repo_cmd( 'repos', 'watch', shift ); },
+    'r.unwatch'  => sub { shift->run_basic_repo_cmd( 'repos', 'unwatch', shift ); },
     'r.fork'     => sub { shift->run_basic_repo_cmd( 'repos', 'create_fork', shift ); },
     'r.create'   => \&repo_create,
     'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
