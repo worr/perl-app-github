@@ -180,9 +180,9 @@ my $dispatch = {
     'i.list'    => sub {
         my ( $self, $type ) = @_;
         $type ||= 'open';
-        $self->run_github( 'issue', 'list', $type );
+        $self->run_github_with_repo( 'issue', 'repos_issues', { state => $type } );
     },
-    'i.view'    => sub { shift->run_github( 'issue', 'view', shift ); },
+    'i.view'    => sub { shift->run_github_with_repo( 'issue', 'issue', shift ); },
     'i.open'    => sub { shift->issue_open_or_edit( 'open' ) },
     'i.edit'    => sub { shift->issue_open_or_edit( 'edit', @_ ) },
     'i.close'   => sub { shift->run_github( 'issue', 'close', shift ); },
@@ -496,9 +496,9 @@ sub issue_open_or_edit {
     }
     
     if ( $type eq 'edit' ) {
-        $self->run_github_with_repo( 'issue', 'edit', $number, $title, $body );
+        $self->run_github_with_repo( 'issue', 'update_issue', $number, { title => $title, body => $body } );
     } else {
-        $self->run_github_with_repo( 'issue', 'open', $title, $body );
+        $self->run_github_with_repo( 'issue', 'create_issue', { title => $title, body => $body } );
     }
 }
 
