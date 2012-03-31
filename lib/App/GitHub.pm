@@ -508,9 +508,9 @@ sub issue_label {
     no warnings 'uninitialized';
     my ( $type, $number, $label ) = split(/\s+/, $args, 3);
     if ( $type eq 'add' ) {
-        $self->run_github_with_repo( 'issue', 'add_label', $number, $label );
+        $self->run_github_with_repo( 'issue', 'create_issue_label', $number, [ $label ] );
     } elsif ( $type eq 'del' ) {
-        $self->run_github_with_repo( 'issue', 'remove_label', $number, $label );
+        $self->run_github_with_repo( 'issue', 'delete_issue_label', $number, $label );
     } else {
         $self->print('unknown argument. i.label add|del :number :label');
     }
@@ -531,7 +531,7 @@ sub issue_comment {
         $body .= "\n" . $data;
     }
     
-    $self->run_github_with_repo( 'issue', 'comment', $number, $body );
+    $self->run_github_with_repo( 'issue', 'create_comment', $number, { body => $body } );
 }
 
 ################## Users
