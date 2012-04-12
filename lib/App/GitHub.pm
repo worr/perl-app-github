@@ -12,7 +12,7 @@ use Term::ReadLine;
 use JSON::XS;
 use IPC::Cmd qw/can_run/;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 has 'term' => (
     is => 'rw', required => 1,
@@ -28,6 +28,12 @@ has 'out_fh' => (
     default => sub {
         shift->term->OUT || \*STDOUT;
     }
+);
+
+has 'repo_regexp' => (
+    is => 'ro', required => 1,
+    isa => 'RegexpRef',
+    default => sub { qr/^([\-\w]+)[\/\\\s]([\-\w]+)$/ }
 );
 
 sub print {
@@ -85,30 +91,25 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
 
      command   argument          description
      repo      :user :repo       set owner/repo, eg: 'fayland perl-app-github'
-     login     :login :token     authenticated as :login
-     loadcfg                     authed by git config --global github.user|token
+     login     :login :pass      authenticated as :login
+     loadcfg                     authed by git config --global github.user|pass
      ?,h                         help
      q,exit,quit                 exit
     
     Repos
      r.show                      more in-depth information for the :repo
      r.list                      list out all the repositories for the :user
-     r.search WORD               Search Repositories
      r.watch                     watch repositories (auth required)
      r.unwatch                   unwatch repositories (auth required)
      r.fork                      fork a repository (auth required)
      r.create                    create a new repository (auth required)
-     r.delete                    delete a repository (auth required)
      r.set_private               set a public repo private (auth required)
      r.set_public                set a private repo public (auth required)
-     r.network                   see all the forks of the repo
-     r.tags                      tags on the repo
-     r.branches                  list of remote branches
+     r.commit    :sha1           show a specific commit
     
     Issues
      i.list    open|closed       see a list of issues for a project
      i.view    :number           get data on an individual issue by number
-     i.search  open|closed WORD  Search Issues
      i.open                      open a new issue (auth required)
      i.close   :number           close an issue (auth required)
      i.reopen  :number           reopen an issue (auth required)
@@ -118,7 +119,6 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
                                  add/remove a label (auth required)
     
     Users
-     u.search  WORD              search user
      u.show                      get extended information on user
      u.update                    update your users info (auth required)
      u.followers
@@ -129,20 +129,10 @@ has '_data' => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
      u.pub_keys.add
      u.pub_keys.del :number
     
-    Commits
-     c.branch  :branch           list commits for a branch
-     c.file    :branch :file     get all the commits modified the file
-     c.file    :file             (default branch 'master')
-     c.show    :sha1             show a specific commit
-    
     Objects
      o.tree    :tree_sha1        get the contents of a tree by tree sha
-     o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
-     o.raw     :sha1             get the data of a blob (tree, file or commits)
-    
-    Network
-     n.meta                      network meta
-     n.data_chunk :net_hash      network data
+     o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
+     o.blob    :sha1             get the data of a blob (tree, file or commits)
     
     Others
      r.show    :user :repo       more in-depth information for a repository
@@ -174,42 +164,32 @@ my $dispatch = {
     loadcfg => \&set_loadcfg,
     
     # Repo
-    'r.show'    => \&repo_show,
+    'r.show'    => sub { shift->run_basic_repo_cmd( 'repos', 'get', shift ); },
     'r.list'    => \&repo_list,
-    'r.search' => sub { shift->run_github( 'repos', 'search', shift ); },
-    'r.watch'    => sub { shift->run_github( 'repos', 'watch' ); },
-    'r.unwatch'  => sub { shift->run_github( 'repos', 'unwatch' ); },
-    'r.fork'     => sub { shift->run_github( 'repos', 'fork' ); },
+    'r.watch'    => sub { shift->run_basic_repo_cmd( 'repos', 'watch', shift ); },
+    'r.unwatch'  => sub { shift->run_basic_repo_cmd( 'repos', 'unwatch', shift ); },
+    'r.fork'     => sub { shift->run_basic_repo_cmd( 'repos', 'create_fork', shift ); },
     'r.create'   => \&repo_create,
-    'r.delete'   => \&repo_delete,
-    'r.set_private' => sub { shift->run_github( 'repos', 'set_private' ); },
-    'r.set_public'  => sub { shift->run_github( 'repos', 'set_public' ); },
+    'r.set_private' => sub { shift->repo_update( private => \1, shift ); },
+    'r.set_public'  => sub { shift->repo_update( private => \0, shift ); },
     # XXX? TODO, deploy_keys collaborators
-    'r.network'     => sub { shift->run_github( 'repos', 'network' ); },
-    'r.tags'        => sub { shift->run_github( 'repos', 'tags' ); },
-    'r.branches'    => sub { shift->run_github( 'repos', 'branches' ); },
+    'r.commit'    => sub { shift->run_github_with_repo( 'git_data', 'commit', shift ); },
     
     # Issues
     'i.list'    => sub {
         my ( $self, $type ) = @_;
         $type ||= 'open';
-        $self->run_github( 'issue', 'list', $type );
+        $self->run_github_with_repo( 'issue', 'repos_issues', { state => $type } );
     },
-    'i.view'    => sub { shift->run_github( 'issue', 'view', shift ); },
-    'i.search'  => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        $self->run_github( 'issue', 'search', @args );
-    },
+    'i.view'    => sub { shift->run_github_with_repo( 'issue', 'issue', shift ); },
     'i.open'    => sub { shift->issue_open_or_edit( 'open' ) },
     'i.edit'    => sub { shift->issue_open_or_edit( 'edit', @_ ) },
-    'i.close'   => sub { shift->run_github( 'issue', 'close', shift ); },
-    'i.reopen'  => sub { shift->run_github( 'issue', 'reopen', shift ); },
+    'i.close'   => sub { shift->run_github_with_repo( 'issue', 'update_issue', shift, { state => 'closed' } ); },
+    'i.reopen'  => sub { shift->run_github_with_repo( 'issue', 'update_issue', shift, { state => 'open' } ); },
     'i.label'   => \&issue_label,
     'i.comment' => \&issue_comment,
     
     # User
-    'u.search' => sub { shift->run_github( 'user', 'search', shift ); },
     'u.show'   => sub { shift->run_github( 'user', 'show', shift ); },
     'u.update' => \&user_update,
     'u.followers' => sub { shift->run_github( 'user', 'followers' ); },
@@ -220,28 +200,10 @@ my $dispatch = {
     'u.pub_keys.add' => sub { shift->user_pub_keys( 'add', @_ ); },
     'u.pub_keys.del' => sub { shift->user_pub_keys( 'del', @_ ); },
     
-    # Commits
-    'c.branch'  => sub { shift->run_github( 'commit', 'branch', shift ); },
-    'c.file'    => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        @args = ('master', $args[0]) if scalar @args == 1;
-        $self->run_github( 'commit', 'file', @args );
-    },
-    'c.show'    => sub { shift->run_github( 'commit', 'show', shift ); },
-    
     # Object
-    'o.tree'    => sub { shift->run_github( 'object', 'tree', shift ); },
-    'o.blob'    => sub {
-        my ( $self, $arg ) = @_;
-        my @args = split(/\s+/, $arg, 2);
-        $self->run_github( 'object', 'blob', @args );
-    },
-    'o.raw'     => sub { shift->run_github( 'object', 'raw',  shift ); },
-    
-    # Network
-    'n.meta'       => sub { shift->run_github( 'network', 'network_meta' ); },
-    'n.data_chunk' => sub { shift->run_github( 'network', 'network_data_chunk', shift ); },
+    'o.tree'    => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
+    'o.trees'   => sub { shift->run_github_with_repo( 'git_data', 'tree', shift ); },
+    'o.blob'     => sub { shift->run_github_with_repo( 'git_data', 'blob',  shift ); },
 };
 
 sub run {
@@ -281,30 +243,25 @@ sub help {
     $self->print(<<HELP);
  command   argument          description
  repo      :user :repo       set owner/repo, eg: 'fayland perl-app-github'
- login     :login :token     authenticated as :login
- loadcfg                     authed by git config --global github.user|token
+ login     :login :pass      authenticated as :login
+ loadcfg                     authed by git config --global github.user|pass
  ?,h                         help
  q,exit,quit                 exit
 
 Repos
  r.show                      more in-depth information for the :repo
  r.list                      list out all the repositories for the :user
- r.search WORD               Search Repositories
  r.watch                     watch repositories (auth required)
  r.unwatch                   unwatch repositories (auth required)
  r.fork                      fork a repository (auth required)
  r.create                    create a new repository (auth required)
- r.delete                    delete a repository (auth required)
  r.set_private               set a public repo private (auth required)
  r.set_public                set a private repo public (auth required)
- r.network                   see all the forks of the repo
- r.tags                      tags on the repo
- r.branches                  list of remote branches
+ r.commit    :sha1           show a specific commit
 
 Issues
  i.list    open|closed       see a list of issues for a project
  i.view    :number           get data on an individual issue by number
- i.search  open|closed WORD  Search Issues
  i.open                      open a new issue (auth required)
  i.close   :number           close an issue (auth required)
  i.reopen  :number           reopen an issue (auth required)
@@ -314,7 +271,6 @@ Issues
                              add/remove a label (auth required)
 
 Users
- u.search  WORD              search user
  u.show                      get extended information on user
  u.update                    update your users info (auth required)
  u.followers
@@ -325,20 +281,10 @@ Users
  u.pub_keys.add
  u.pub_keys.del :number
 
-Commits
- c.branch  :branch           list commits for a branch
- c.file    :branch :file     get all the commits modified the file
- c.file    :file             (default branch 'master')
- c.show    :sha1             show a specific commit
-
 Objects
  o.tree    :tree_sha1        get the contents of a tree by tree sha
- o.blob    :tree_sha1 :file  get the data of a blob by tree sha and path
- o.raw     :sha1             get the data of a blob (tree, file or commits)
-
-Network
- n.meta                      network meta
- n.data_chunk :net_hash      network data
+ o.trees   :tree_sha1        get the contents of a tree by tree sha and recursively descend down the tree
+ o.blob    :sha1             get the data of a blob (tree, file or commits)
 
 Others
  r.show    :user :repo       more in-depth information for a repository
@@ -351,21 +297,22 @@ sub set_repo {
     my ( $self, $repo ) = @_;
     
     # validate
-    unless ( $repo =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
+    unless ( $repo =~ $self->repo_regexp ) {
         $self->print("Wrong repo args ($repo), eg 'fayland perl-app-github'");
         return;
     }
-    my ( $owner, $name ) = ( $repo =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ );
+    my ( $owner, $name ) = ( $repo =~ $self->repo_regexp );
     $self->{_data}->{owner} = $owner;
     $self->{_data}->{repo} = $name;
     
     # when call 'login' before 'repo'
-    my @logins = ( $self->{_data}->{login} and $self->{_data}->{token} ) ? (
-        login => $self->{_data}->{login}, token => $self->{_data}->{token}
+    my @logins = ( $self->{_data}->{login} and $self->{_data}->{pass} ) ? (
+        login => $self->{_data}->{login}, pass => $self->{_data}->{pass}
     ) : ();
     
     $self->{github} = Net::GitHub->new(
         owner => $owner, repo => $name,
+        version => 3, pass => $self->{_data}->{pass},
         @logins,
     );
     $self->{prompt} = "$owner/$name> ";
@@ -374,46 +321,48 @@ sub set_repo {
 sub set_login {
     my ( $self, $login ) = @_;
     
-    ( $login, my $token ) = split(/\s+/, $login, 2);
-    unless ( $login and $token ) {
-        $self->print("Wrong login args ($login $token), eg fayland 54b5197d7f92f52abc5c7149b313cf51");
+    ( $login, my $pass ) = split(/\s+/, $login, 2);
+    unless ( $login and $pass ) {
+        $self->print("Wrong login args ($login $pass), eg fayland password");
         return;
     }
 
-    $self->_do_login( $login, $token );
+    $self->_do_login( $login, $pass );
 }
 
 sub set_loadcfg {
     my ( $self, $ign ) = @_;
     
     my $login = `git config --global github.user`;
-    my $token = `git config --global github.token`;
-    chomp($login); chomp($token);
-    unless ( ($login and $token) or $ign ) {
-        $self->print("run git config --global github.user|token fails");
+    my $pass = `git config --global github.pass`;
+    chomp($login); chomp($pass);
+    unless ( ($login and $pass) or $ign ) {
+        $self->print("run git config --global github.user|pass fails");
         return;
     }
     
-    $self->_do_login( $login, $token ) if $login and $token;
+    $self->_do_login( $login, $pass ) if $login and $pass;
 }
 
 sub _do_login {
-    my ( $self, $login, $token ) = @_;
+    my ( $self, $login, $pass ) = @_;
     
     # save for set_repo
     $self->{_data}->{login} = $login;
-    $self->{_data}->{token} = $token;
+    $self->{_data}->{pass} = $pass;
 
     if ( $self->{_data}->{repo} ) {
         $self->{github} = Net::GitHub->new(
+            version => 3,
             owner => $self->{_data}->{owner}, repo  => $self->{_data}->{repo},
-            login => $self->{_data}->{login}, token => $self->{_data}->{token}
+            login => $self->{_data}->{login}, pass => $self->{_data}->{pass}
         );
     } else {
         # Create a Net::GitHub object with the owner set to the logged in user
         # Super convenient if you don't want to set a user first
         $self->{github} = Net::GitHub->new(
-            login => $self->{_data}->{login}, token => $self->{_data}->{token},
+            version => 3,
+            login => $self->{_data}->{login}, pass => $self->{_data}->{pass},
             owner => $self->{_data}->{login}
         );
     }
@@ -423,14 +372,14 @@ sub run_github {
     my ( $self, $c1, $c2 ) = @_;
     
     unless ( $self->github ) {
-        $self->print(q~not enough information. try calling login :user :token or loadcfg~);
+        $self->print(q~not enough information. try calling login :user :pass or loadcfg~);
         return;
     }
     
     my @args = splice( @_, 3, scalar @_ - 3 );
     eval {
         my $result = $self->github->$c1->$c2(@args);
-        # o.raw return plain text
+        # o.blob return plain text
         if ( ref $result ) {
             $result = JSON::XS->new->utf8->pretty->encode( $result );
         }
@@ -439,8 +388,8 @@ sub run_github {
     
     if ( $@ ) {
         # custom error
-        if ( $@ =~ /login and token are required/ ) {
-            $self->print(qq~authentication required.\ntry 'login :owner :token' or 'loadcfg' first\n~);
+        if ( $@ =~ /login and pass are required/ ) {
+            $self->print(qq~authentication required.\ntry 'login :owner :pass' or 'loadcfg' first\n~);
         } else {
             $self->print($@);
         }
@@ -455,19 +404,20 @@ sub run_github_with_repo {
         return;
     }
 
-    $self->run_github( @_ );
+    $self->run_github( shift, shift, $self->{_data}->{owner}, $self->{_data}->{repo}, @_ );
 }
 
-################## Repos
-sub repo_show {
-    my ( $self, $args ) = @_;
-    if ( $args and $args =~ /^([\-\w]+)[\/\\\s]([\-\w]+)$/ ) {
-        $self->run_github( 'repos', 'show', $1, $2 );
+sub run_basic_repo_cmd {
+    my ( $self, $obj, $meth, $args ) = @_;
+
+    if ( $args and $args =~ $self->repo_regexp ) {
+        $self->run_github( $obj, $meth, $1, $2 );
     } else {
-        $self->run_github_with_repo( 'repos', 'show' );
+        $self->run_github_with_repo( $obj, $meth );
     }
 }
 
+################## Repos
 sub repo_list {
     my ( $self, $args ) = @_;
     if ( $args and $args =~ /^[\w\-]+$/ ) {
@@ -481,7 +431,7 @@ sub repo_create {
     my ( $self ) = @_;
     
     my %data;
-    foreach my $col ( 'name', 'desc', 'homepage' ) {
+    foreach my $col ( 'name', 'description', 'homepage' ) {
         my $data = $self->read( ucfirst($col) . ': ' );
         $data{$col} = $data;
     }
@@ -490,16 +440,21 @@ sub repo_create {
         return;
     }
     
-    $self->run_github( 'repos', 'create', $data{name}, $data{desc}, $data{homepage}, 1 );
+    $self->run_github( 'repos', 'create', \%data );
 }
 
-sub repo_del {
-    my ( $self ) = @_;
-    
-    my $data = $self->read( 'Are you sure to delete the repo? [YN]? ' );
-    if ( $data eq 'Y' ) {
-        $self->print("Deleting Repos ...");
-        $self->run_github_with_repo( 'repos', 'delete', { confirm => 1 } );
+sub repo_update {
+    my ( $self, $param, $value, $args ) = @_;
+
+    if ( $args and $args =~ $self->repo_regexp ) {
+        $self->run_github( 'repos', 'update', $1, $2, { $param => $value, name => $2 } );
+    } else {
+        unless ($self->{_data}->{repo}) {
+            $self->print(q~no repo specified. try calling repo :owner :repo~);
+            return;
+        }
+
+        $self->run_github_with_repo( 'repos', 'update', { $param => $value, name => $self->{_data}->{repo} } );
     }
 }
 
@@ -521,9 +476,9 @@ sub issue_open_or_edit {
     }
     
     if ( $type eq 'edit' ) {
-        $self->run_github_with_repo( 'issue', 'edit', $number, $title, $body );
+        $self->run_github_with_repo( 'issue', 'update_issue', $number, { title => $title, body => $body } );
     } else {
-        $self->run_github_with_repo( 'issue', 'open', $title, $body );
+        $self->run_github_with_repo( 'issue', 'create_issue', { title => $title, body => $body } );
     }
 }
 
@@ -533,9 +488,9 @@ sub issue_label {
     no warnings 'uninitialized';
     my ( $type, $number, $label ) = split(/\s+/, $args, 3);
     if ( $type eq 'add' ) {
-        $self->run_github_with_repo( 'issue', 'add_label', $number, $label );
+        $self->run_github_with_repo( 'issue', 'create_issue_label', $number, [ $label ] );
     } elsif ( $type eq 'del' ) {
-        $self->run_github_with_repo( 'issue', 'remove_label', $number, $label );
+        $self->run_github_with_repo( 'issue', 'delete_issue_label', $number, $label );
     } else {
         $self->print('unknown argument. i.label add|del :number :label');
     }
@@ -556,7 +511,7 @@ sub issue_comment {
         $body .= "\n" . $data;
     }
     
-    $self->run_github_with_repo( 'issue', 'comment', $number, $body );
+    $self->run_github_with_repo( 'issue', 'create_comment', $number, { body => $body } );
 }
 
 ################## Users
@@ -576,17 +531,17 @@ sub user_pub_keys {
     my ( $self, $type, $number ) = @_;
     
     if ( $type eq 'show' ) {
-        $self->run_github( 'user', 'pub_keys' );
+        $self->run_github( 'user', 'keys' );
     } elsif ( $type eq 'add' ) {
         my $name = $self->read( 'Pub Key Name: ' );
         my $keyv = $self->read( 'Key: ' );
-        $self->run_github( 'user', 'add_pub_key', $name, $keyv );
+        $self->run_github( 'user', 'create_key', { title => $name, key => $keyv } );
     } elsif ( $type eq 'del' ) {
         unless ( $number and $number =~ /^\d+$/ ) {
             $self->print('unknown argument. u.pub_keys.del :number');
             return;
         }
-        $self->run_github( 'user', 'remove_pub_key', $number );
+        $self->run_github( 'user', 'delete_key', $number );
     }
 }
 

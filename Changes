@@ -1,5 +1,8 @@
 Revision history for Perl extension App-GitHub
 
+0.13	2012.04.12
+		updated for api v3
+
 0.12	2012.03.27
 		doesn't drop into a pager for short output
 		runs loadcfg at startup
