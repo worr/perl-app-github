@@ -36,8 +36,19 @@ has 'repo_regexp' => (
     default => sub { qr/^([\-\w]+)[\/\\\s]([\-\w]+)$/ }
 );
 
+# For non-interactive mode
+has 'silent' => (
+    is => 'rw', required => 1,
+    default => 0,
+);
+
+sub print_err {
+    shift->print(@_, 1);
+}
+
 sub print {
-    my ($self, $message) = @_;
+    my ($self, $message, $error) = @_;
+    return 1 if $self->silent and not $error;
 
     my $fh; local $@;
     my $rows = (GetTerminalSize($self->out_fh))[1];
@@ -391,7 +402,7 @@ sub run_github {
         if ( $@ =~ /login and pass are required/ ) {
             $self->print(qq~authentication required.\ntry 'login :owner :pass' or 'loadcfg' first\n~);
         } else {
-            $self->print($@);
+            $self->print_err($@);
         }
     }
 }
@@ -428,13 +439,18 @@ sub repo_list {
 }
 
 sub repo_create {
-    my ( $self ) = @_;
+    my ( $self ) = shift;
     
     my %data;
-    foreach my $col ( 'name', 'description', 'homepage' ) {
-        my $data = $self->read( ucfirst($col) . ': ' );
-        $data{$col} = $data;
+    unless (@_) {
+        foreach my $col ( 'name', 'description', 'homepage' ) {
+            my $data = $self->read( ucfirst($col) . ': ' );
+            $data{$col} = $data;
+        }
+    } else {
+        ($data{name}, $data{description}, $data{homepage}) = @_;
     }
+
     unless ( length( $data{name} ) ) {
         $self->print('create repo failed. name is required');
         return;
