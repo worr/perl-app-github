@@ -5,6 +5,7 @@ use warnings;
 
 # ABSTRACT: GitHub Command Tools
 
+use Carp;
 use Moose;
 use Net::GitHub;
 use Term::ReadKey;
@@ -12,7 +13,7 @@ use Term::ReadLine;
 use JSON::XS;
 use IPC::Cmd qw/can_run/;
 
-our $VERSION = '0.13';
+our $VERSION = '1.0';
 
 has 'term' => (
     is => 'rw', required => 1,
@@ -67,7 +68,7 @@ sub print {
 
         $fh = $self->out_fh;
     } else {
-        eval { open $fh, '|-', $self->_get_pager or die "unable to open more: $!" }
+        eval { open $fh, '|-', $self->_get_pager or croak "unable to open more: $!" }
             or $fh = $self->out_fh;
         $pager_use = 1;
     }
@@ -80,7 +81,7 @@ sub print {
 
 sub _get_pager {
     my $pager = $ENV{PAGER} || can_run("less") || can_run("more")
-        || die "no pager found";
+        || croak "no pager found";
 }
 
 sub read {
@@ -383,6 +384,7 @@ sub run_github {
     my ( $self, $c1, $c2 ) = @_;
     
     unless ( $self->github ) {
+        croak "not auth" if not $self->silent;
         $self->print(q~not enough information. try calling login :user :pass or loadcfg~);
         return;
     }
@@ -400,8 +402,10 @@ sub run_github {
     if ( $@ ) {
         # custom error
         if ( $@ =~ /login and pass are required/ ) {
+            croak "not auth" if not $self->silent;
             $self->print(qq~authentication required.\ntry 'login :owner :pass' or 'loadcfg' first\n~);
         } else {
+            croak $@ if not $self->silent;
             $self->print_err($@);
         }
     }
