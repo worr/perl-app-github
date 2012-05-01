@@ -402,10 +402,10 @@ sub run_github {
     if ( $@ ) {
         # custom error
         if ( $@ =~ /login and pass are required/ ) {
-            croak "not auth" if not $self->silent;
+            croak "not auth" if $self->silent;
             $self->print(qq~authentication required.\ntry 'login :owner :pass' or 'loadcfg' first\n~);
         } else {
-            croak $@ if not $self->silent;
+            croak $@ if $self->silent;
             $self->print_err($@);
         }
     }
@@ -548,14 +548,21 @@ sub user_update {
 }
 
 sub user_pub_keys {
-    my ( $self, $type, $number ) = @_;
+    my ( $self, $type, $number, $key ) = @_;
     
     if ( $type eq 'show' ) {
         $self->run_github( 'user', 'keys' );
     } elsif ( $type eq 'add' ) {
-        my $name = $self->read( 'Pub Key Name: ' );
-        my $keyv = $self->read( 'Key: ' );
-        $self->run_github( 'user', 'create_key', { title => $name, key => $keyv } );
+        my ($name, $keyv);
+        unless ($number and $key) {
+            $name = $self->read( 'Pub Key Name: ' );
+            $keyv = $self->read( 'Key: ' );
+        } else {
+            $name = $number;
+            $keyv = $key;
+        }
+
+        return $self->run_github( 'user', 'create_key', { title => $name, key => $keyv } );
     } elsif ( $type eq 'del' ) {
         unless ( $number and $number =~ /^\d+$/ ) {
             $self->print('unknown argument. u.pub_keys.del :number');

@@ -19,9 +19,11 @@ if (@ARGV == 0) {
     App::GitHub->new->run(@ARGV);
 } else {
     # Let's define some options!
-    my ($create, $username, $password);
+    my ($create, $username, $password, $key, $name);
     GetOptions(
         'create|c=s'        => \$create,
+        'key|k=s'           => \$key,
+        'name|n=s'          => \$name,
         'username|u=s'      => \$username,
         'password|p=s'      => \$password
     );
@@ -43,6 +45,18 @@ if (@ARGV == 0) {
             die "Could not create repo $create";
         } else {
             say "Created repo $create";
+        }
+    } elsif ($key) {
+        die "Provide a name for the key with -n" if not $name;
+
+        eval {
+            $github->user_pub_keys("add", $name, $key);
+        };
+
+        if ($@) {
+            die "Could not add key";
+        } else {
+            say "Added pubkey";
         }
     }
 }
