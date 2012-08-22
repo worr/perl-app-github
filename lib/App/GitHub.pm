@@ -384,7 +384,7 @@ sub run_github {
     my ( $self, $c1, $c2 ) = @_;
     
     unless ( $self->github ) {
-        croak "not auth" if not $self->silent;
+        croak "not auth" if $self->silent;
         $self->print(q~not enough information. try calling login :user :pass or loadcfg~);
         return;
     }
