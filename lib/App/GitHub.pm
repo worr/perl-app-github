@@ -13,7 +13,7 @@ use Term::ReadLine;
 use JSON::XS;
 use IPC::Cmd qw/can_run/;
 
-our $VERSION = '1.0';
+our $VERSION = '1.0.1';
 
 has 'term' => (
     is => 'rw', required => 1,
