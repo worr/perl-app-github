@@ -5,6 +5,6 @@ perl:
   - "5.14"
   - "5.16"
 
-before_install: cpanm Dist::Zilla; dzil authordeps | cpanm
+before_install: cpanm -n Dist::Zilla Dist::Zilla::PluginBundle::FAYLAND
 install: dzil build
 script: dzil test
