@@ -62,10 +62,8 @@ sub print {
     my $pager_use = 0;
 
     # let less exit if one screen
-    no warnings 'uninitialized';
-    local $ENV{LESS} ||= "";
+    local $ENV{LESS} //= "";
     $ENV{LESS} .= " -F";
-    use warnings;
 
     if ($@ or $message_rows < $rows) {
         chomp $message;
@@ -509,7 +507,6 @@ sub issue_open_or_edit {
 sub issue_label {
     my ( $self, $args ) = @_;
     
-    no warnings 'uninitialized';
     my ( $type, $number, $label ) = split(/\s+/, $args, 3);
     if ( $type eq 'add' ) {
         $self->run_github_with_repo( 'issue', 'create_issue_label', $number, [ $label ] );
