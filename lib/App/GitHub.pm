@@ -78,7 +78,6 @@ sub print {
         $pager_use = 1;
     }
     
-    no warnings 'uninitialized';
     print $fh "$message";
     print $fh "\n" if $self->term->ReadLine =~ /Gnu/;
     close($fh) if $pager_use;
