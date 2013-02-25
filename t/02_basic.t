@@ -12,6 +12,11 @@ use Test::MockObject;
 use lib "../lib";
 
 use App::GitHub;
+ 
+if ( not exists $ENV{COLUMNS} ) {
+    $ENV{COLUMNS} = 80;
+    $ENV{LINES}   = 24;
+}
 
 my $mock_ngh = Test::MockObject->new;
 $mock_ngh->set_isa( "Net::GitHub" );

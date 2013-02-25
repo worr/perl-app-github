@@ -7,17 +7,22 @@ use v5.10;
 
 use Test::MockObject;
 use Exporter 'import';
-our @EXPORT_OK = ( qw/init_app_github setup_pipe/ );
+our @EXPORT_OK = ( qw/init_app_github/ );
 
 use lib "../../../../lib";
 
 use App::GitHub;
 
-sub init_app_github {
-	my $mock_ngh = Test::MockObject->new;
-	$mock_ngh->set_isa( "Net::GitHub" );
+sub init_app_github {         
+    if ( not exists $ENV{COLUMNS} ) {
+        $ENV{COLUMNS} = 80;
+        $ENV{LINES}   = 24;
+    }
+    
+    my $mock_ngh = Test::MockObject->new;
+    $mock_ngh->set_isa( "Net::GitHub" );
 
-	return App::GitHub->new( github => $mock_ngh );
+    return App::GitHub->new( github => $mock_ngh, out_fh => \*STDOUT );
 }
 
 1;
