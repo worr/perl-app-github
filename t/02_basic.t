@@ -16,12 +16,11 @@ use App::GitHub;
 my $mock_ngh = Test::MockObject->new;
 $mock_ngh->set_isa( "Net::GitHub" );
 
-my $gh = App::GitHub->new( github => $mock_ngh, term => \*STDOUT );
+my $gh = App::GitHub->new( github => $mock_ngh );
 isa_ok( $gh, "App::GitHub" );
 
 is( $gh->prompt, "github> ", "Prompt is 'github> '" );
-isa_ok( $gh->term, "GLOB" );
+ok( defined $gh->term, "term defined" );
 is( $gh->silent, 0, "Silent is false" );
 is_deeply( $gh->_data, {}, "_data is empty" );
 is_deeply( $gh->repo_regexp, qr/^([\-\w]+)[\/\\\s]([\-\w]+)$/, "repo_regexp is accurate" );
-
