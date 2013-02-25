@@ -9,8 +9,6 @@ use Test::MockObject;
 use Exporter 'import';
 our @EXPORT_OK = ( qw/init_app_github/ );
 
-use lib "../../../../lib";
-
 use App::GitHub;
 
 sub init_app_github {         
