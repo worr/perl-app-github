@@ -11,9 +11,7 @@ use Test::NoWarnings;
 use Test::MockObject;
 use Test::MockCommand record => 'commands.db';
 
-use lib "../lib";
 use lib "t/lib";
-use lib "./lib";
 
 use App::GitHub;
 use App::GitHub::Test qw/init_app_github/;

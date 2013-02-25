@@ -9,8 +9,6 @@ use Test::More tests => 7;
 use Test::NoWarnings;
 use Test::MockObject;
 
-use lib "../lib";
-
 use App::GitHub;
  
 if ( not exists $ENV{COLUMNS} ) {
