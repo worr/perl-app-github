@@ -71,9 +71,13 @@ sub print {
 
         $fh = $self->out_fh;
     } else {
-        eval { open $fh, '|-', $self->_get_pager or croak "unable to open more: $!" }
-            or $fh = $self->out_fh;
-        $pager_use = 1;
+        try { 
+            open $fh, '|-', $self->_get_pager;
+            $pager_use = 1;
+        } catch {
+            $fh = $self->out_fh;
+            print $fh "$_";
+        };
     }
     
     print $fh "$message";

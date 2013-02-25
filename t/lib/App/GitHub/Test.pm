@@ -16,7 +16,7 @@ use App::GitHub;
 sub init_app_github {         
     if ( not exists $ENV{COLUMNS} ) {
         $ENV{COLUMNS} = 80;
-        $ENV{LINES}   = 24;
+        $ENV{LINES}   = 3;
     }
     
     my $mock_ngh = Test::MockObject->new;
