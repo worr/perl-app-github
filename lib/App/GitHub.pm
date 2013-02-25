@@ -10,6 +10,7 @@ use Moose;
 use Net::GitHub;
 use Term::ReadKey;
 use Term::ReadLine;
+use Try::Tiny;
 use JSON::XS;
 use IPC::Cmd qw/can_run/;
 
@@ -25,9 +26,13 @@ has 'prompt' => (
 );
 
 has 'out_fh' => (
-    is => 'rw', required => 1, lazy => 1,
+    is => 'rw', required => 1,
     default => sub {
-        shift->term->OUT || \*STDOUT;
+        try {
+            shift->term->OUT;
+        } catch {
+            \*STDOUT;
+        }
     }
 );
 
