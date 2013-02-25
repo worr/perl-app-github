@@ -32,7 +32,7 @@ has 'out_fh' => (
             shift->term->OUT;
         } catch {
             \*STDOUT;
-        }
+        };
     }
 );
 
