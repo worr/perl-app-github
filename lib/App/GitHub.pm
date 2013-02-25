@@ -6,7 +6,7 @@ use warnings;
 # ABSTRACT: GitHub Command Tools
 
 use Carp;
-use Moose;
+use Mouse;
 use Net::GitHub;
 use Term::ReadKey;
 use Term::ReadLine;
@@ -86,8 +86,8 @@ sub print {
 }
 
 sub _get_pager {
-    my $pager = $ENV{PAGER} || can_run("less") || can_run("more")
-        || croak "no pager found";
+    my $pager = $ENV{PAGER} or can_run("less") or can_run("more")
+        or croak "no pager found";
 }
 
 sub read {
