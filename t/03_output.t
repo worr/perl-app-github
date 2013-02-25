@@ -5,7 +5,7 @@ use warnings;
 
 use v5.10;
 
-use Test::More;
+use Test::More tests => 6;
 use Test::NoWarnings;
 use Test::MockObject;
 use Test::MockCommand record => 'commands.db';
@@ -46,12 +46,10 @@ my $gh = init_app_github;
     
     # test that no pager errors gracefully
     open( STDOUT, '>', \$output );
-    local $ENV{PATH} = ""; # disable use of pager
+    local $ENV{PATH} = undef; # disable use of pager
     $gh->print( "really\nlong\ncommand\nto\ncall\nless" );
     like( $output, 
           qr'no pager found at .+\nreally\nlong\ncommand\nto\ncall\nless', 
           "long output without pager fails gracefully" );
     close STDOUT;
 }
-
-done_testing;
