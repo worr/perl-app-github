@@ -6,4 +6,5 @@ perl:
   - "5.16"
 
 before_install: dzil authordeps | cpanm -nq; dzil listdeps | cpanm -nq
+install: true
 script: prove -l
