@@ -5,6 +5,7 @@ use warnings;
 
 use v5.10;
 
+use IO::CaptureOutput qw/capture/;
 use Test::More tests => 6;
 use Test::NoWarnings;
 use Test::MockObject;
@@ -18,38 +19,33 @@ use App::GitHub;
 use App::GitHub::Test qw/init_app_github/;
 
 my $gh = init_app_github;
+my $output;
 
+# Test normal printing
+
+capture { $gh->print( "testing" ) } \$output, undef;
+is( $output, "testing\n" );
+
+# test printer errors
+capture { $gh->print_err("error") } \$output, undef;
+is( $output, "error\n" );
+
+# test that pager gets called correctly
 {
-    # Test normal printing
-    local *STDOUT;
-    my $output;
-    open( STDOUT, '>', \$output );
-    $gh->print( "testing" );
-    is( $output, "testing\n" );
-    close STDOUT;
-
-    # test printer errors
-    open( STDOUT, '>', \$output );
-    $gh->print_err("error");
-    is( $output, "error\n" );
-    close STDOUT;
-    
-    # test that pager gets called correctly
-    open( STDOUT, '>', \$output );
     local $ENV{PAGER} = "more";
     is( $gh->_get_pager, "more", "testing pager is more" );
-    $gh->print( "really\nlong\ncommand\nto\ncall\nless" );
+    capture { $gh->print( "really\nlong\ncommand\nto\ncall\nless" ) } undef, undef;
     my ( $more ) = Test::MockCommand->find( command => 'more' );
     ok( $more, "test that more was called" );
-    delete local $ENV{PAGER};
-    close STDOUT;
-    
-    # test that no pager errors gracefully
-    open( STDOUT, '>', \$output );
-    local $ENV{PATH} = undef; # disable use of pager
-    $gh->print( "really\nlong\ncommand\nto\ncall\nless" );
-    like( $output, 
-          qr'no pager found at .+\nreally\nlong\ncommand\nto\ncall\nless', 
-          "long output without pager fails gracefully" );
-    close STDOUT;
 }
+
+# test that no pager errors gracefully
+{
+    delete local $ENV{PATH}; # disable use of pager
+    local $^W = 0 if $IPC::Cmd::VERSION <= 0.78; # https://github.com/jib/ipc-cmd/pull/2
+    capture { $gh->print( "really\nlong\ncommand\nto\ncall\nless" ) } \$output, undef;
+};
+
+like( $output, 
+      qr'no pager found at .+\nreally\nlong\ncommand\nto\ncall\nless', 
+      "long output without pager fails gracefully" );
