@@ -1,3 +1,4 @@
 App-GitHub-*
 *.tar.gz
 *.swp
+.build/*
