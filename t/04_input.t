@@ -11,7 +11,6 @@ use IO::Scalar;
 
 use lib "t/lib";
 
-use App::GitHub;
 use App::GitHub::Test qw/init_app_github/;
 
 my $gh = init_app_github;

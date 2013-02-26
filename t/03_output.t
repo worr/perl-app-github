@@ -8,12 +8,10 @@ use v5.10;
 use IO::CaptureOutput qw/capture/;
 use Test::More tests => 6;
 use Test::NoWarnings;
-use Test::MockObject;
 use Test::MockCommand record => 'commands.db';
 
 use lib "t/lib";
 
-use App::GitHub;
 use App::GitHub::Test qw/init_app_github/;
 
 my $gh = init_app_github;
