@@ -5,7 +5,8 @@ use warnings;
 
 use v5.10;
 
-use Test::More;
+use Test::More tests => 5;
+use Test::NoWarnings;
 use IO::Scalar;
 
 use lib "t/lib";
@@ -28,5 +29,3 @@ $gh->term->clear;
 is( $gh->read( $test_prompt ), "test" );
 is( ($gh->term->call_args( 1 ))[1], $test_prompt );
 $gh->term->clear;
-
-done_testing;
