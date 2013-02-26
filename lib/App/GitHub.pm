@@ -92,7 +92,7 @@ sub _get_pager {
 
 sub read {
     my ($self, $prompt) = @_;
-    $prompt ||= $self->prompt;
+    $prompt //= $self->prompt;
     return $self->term->readline($prompt);
 }
 

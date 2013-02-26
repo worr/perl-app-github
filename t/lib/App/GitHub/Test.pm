@@ -19,8 +19,19 @@ sub init_app_github {
     
     my $mock_ngh = Test::MockObject->new;
     $mock_ngh->set_isa( "Net::GitHub" );
+    
+    my $mock_readline = Test::MockObject->new;
+    $mock_readline->set_isa( "Term::ReadLine" );
+    $mock_readline->mock( ReadLine => sub { "Mock " });
+    $mock_readline->mock( readline => sub {
+        my $line = <STDIN>;
+        chomp $line;
+        return $line;
+    });
 
-    return App::GitHub->new( github => $mock_ngh, out_fh => \*STDOUT );
+    return App::GitHub->new( github => $mock_ngh, 
+                             out_fh => \*STDOUT,
+                             term => $mock_readline );
 }
 
 1;
