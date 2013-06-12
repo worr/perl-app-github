@@ -1,0 +1,28 @@
+$VAR1 = {
+          'readpipe:git config --global github.pass' => [
+                                                              bless( {
+                                                                       'exit_code' => '0',
+                                                                       'function' => 'readpipe',
+                                                                       'return_value' => 'test
+',
+                                                                       'cwd' => 'C:/Users/will2/Documents/GitHub/perl-app-github',
+                                                                       'arguments' => [
+                                                                                        'git config --global github.pass'
+                                                                                      ],
+                                                                       'command' => 'git config --global github.pass'
+                                                                     }, 'Test::MockCommand::Result' )
+                                                            ],
+          'readpipe:git config --global github.user' => [
+                                                              bless( {
+                                                                       'exit_code' => '0',
+                                                                       'function' => 'readpipe',
+                                                                       'return_value' => 'worr
+',
+                                                                       'cwd' => 'C:/Users/will2/Documents/GitHub/perl-app-github',
+                                                                       'arguments' => [
+                                                                                        'git config --global github.user'
+                                                                                      ],
+                                                                       'command' => 'git config --global github.user'
+                                                                     }, 'Test::MockCommand::Result' )
+                                                            ]
+        };

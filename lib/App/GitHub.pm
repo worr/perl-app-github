@@ -341,7 +341,7 @@ sub set_login {
     
     ( $login, my $pass ) = split(/\s+/, $login, 2);
     unless ( $login and $pass ) {
-        $self->print("Wrong login args ($login $pass), eg fayland password");
+        $self->print("Wrong login args ($login $pass), eg username password");
         return;
     }
 
